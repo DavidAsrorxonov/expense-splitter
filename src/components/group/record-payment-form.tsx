@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { FormErrorSummary } from "@/components/forms/form-error-summary";
 import { FormField } from "@/components/forms/form-field";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { Amount } from "@/components/money/amount";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { decimalsFor, type CurrencyCode } from "@/domain/currency";
 import type { Transfer } from "@/domain/minimze-transfers";
 import { fieldValue, initialActionState, type FormAction } from "@/lib/action-state";
@@ -20,6 +21,9 @@ type RecordPaymentFormProps = {
 export function RecordPaymentForm(props: RecordPaymentFormProps) {
   const { action, groupId, members, currency } = props;
   const [state, formAction, pending] = useActionState(action, initialActionState, `/g/${groupId}`);
+  const [memberSelections, setMemberSelections] = useState({
+    state, fromMember: fieldValue(state, "fromMember"), toMember: fieldValue(state, "toMember"),
+  });
   const feedback = <>
     <FormErrorSummary message={state.status === "error" ? state.message : undefined} />
     <p role="status" aria-live="polite" className="flex items-start gap-2 text-sm">
@@ -65,16 +69,31 @@ export function RecordPaymentForm(props: RecordPaymentFormProps) {
       <fieldset key={JSON.stringify(state.values ?? {})} disabled={disabled} className="min-w-0 space-y-4 disabled:opacity-60">
         <legend className="sr-only">Payment details</legend>
         {(["fromMember", "toMember"] as const).map((field) => {
-          const value = fieldValue(state, field);
+          const value = memberSelections.state === state ? memberSelections[field] : fieldValue(state, field);
+          const items = members.map((member) => ({ value: String(member.id), label: memberName(member.id, members) }));
+          const unavailable = value !== "" && !items.some((item) => item.value === value);
+          if (unavailable) items.push({ value, label: "Previously selected member is unavailable" });
           const id = `payment-${field}`;
           return <FormField key={field} id={id} label={field === "fromMember" ? "Sender" : "Recipient"} error={state.fieldErrors?.[field]}>
-            <select id={id} name={field} required defaultValue={value} aria-invalid={Boolean(state.fieldErrors?.[field])}
-              aria-describedby={state.fieldErrors?.[field] ? `${id}-description` : undefined}
-              className="min-h-11 w-full min-w-0 border border-input bg-background px-3 py-3 text-base aria-invalid:border-destructive">
-              <option value="">Choose a member</option>
-              {value && !members.some((member) => String(member.id) === value) && <option value={value} disabled>Previously selected member is unavailable</option>}
-              {members.map((member) => <option key={member.id} value={member.id}>{memberName(member.id, members)}</option>)}
-            </select>
+            <Select name={field} required disabled={disabled} items={items} value={value || null}
+              onValueChange={(nextValue) => setMemberSelections((current) => ({
+                state,
+                fromMember: current.state === state ? current.fromMember : fieldValue(state, "fromMember"),
+                toMember: current.state === state ? current.toMember : fieldValue(state, "toMember"),
+                [field]: nextValue ?? "",
+              }))}>
+              <SelectTrigger id={id} aria-invalid={Boolean(state.fieldErrors?.[field])}
+                aria-describedby={state.fieldErrors?.[field] ? `${id}-description` : undefined}>
+                <SelectValue placeholder="Choose a member" />
+              </SelectTrigger>
+              <SelectContent>
+                {items.map((item) => (
+                  <SelectItem key={item.value} value={item.value} disabled={unavailable && item.value === value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormField>;
         })}
         <FormField id="payment-amount" label={`Amount (${currency})`} hint={whole ? "Whole yen, e.g. 1500" : "e.g. 12.50"} error={state.fieldErrors?.amount}>

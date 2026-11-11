@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createGroupAction } from "@/app/actions";
 import { FormErrorSummary } from "@/components/forms/form-error-summary";
 import { FormField } from "@/components/forms/form-field";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CURRENCIES, type CurrencyCode } from "@/domain/currency";
 import { initialActionState } from "@/lib/action-state";
 
@@ -23,9 +24,15 @@ export function CreateGroupForm() {
     "/",
   );
   const name = typeof state.values?.name === "string" ? state.values.name : "";
-  const currency =
+  const submittedCurrency =
     typeof state.values?.currency === "string" ? state.values.currency : "JPY";
+  // A new action result restores failed submissions or resets a successful form.
+  const [selection, setSelection] = useState({ state, value: submittedCurrency });
+  const currency = selection.state === state ? selection.value : submittedCurrency;
   const currencyIsSupported = Object.hasOwn(CURRENCIES, currency);
+  const currencyItems = (Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => ({
+    value: code, label: currencyLabels[code],
+  }));
 
   return (
     <form
@@ -70,26 +77,26 @@ export function CreateGroupForm() {
           hint="All expenses in this group use this currency."
           error={state.fieldErrors?.currency}
         >
-          <select
-            id="group-currency"
+          <Select
             name="currency"
             required
-            defaultValue={currency}
-            aria-invalid={Boolean(state.fieldErrors?.currency)}
-            aria-describedby="group-currency-description"
-            className="min-h-11 w-full min-w-0 border border-input bg-background px-3 py-3 text-base text-foreground focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-foreground focus-visible:outline-offset-2 aria-invalid:border-destructive"
+            items={currencyItems}
+            value={currencyIsSupported ? currency : null}
+            onValueChange={(value) => setSelection({ state, value: value ?? "" })}
           >
-            {!currencyIsSupported && (
-              <option value={currency} disabled>
-                Choose a currency
-              </option>
-            )}
-            {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
-              <option key={code} value={code}>
-                {currencyLabels[code]}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              id="group-currency"
+              aria-invalid={Boolean(state.fieldErrors?.currency)}
+              aria-describedby="group-currency-description"
+            >
+              <SelectValue placeholder="Choose a currency" />
+            </SelectTrigger>
+            <SelectContent>
+              {currencyItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </FormField>
       </fieldset>
       <div>
