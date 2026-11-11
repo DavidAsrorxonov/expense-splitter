@@ -15,7 +15,9 @@ import { getGroupOverview } from "@/services/overview-service";
 
 type GroupPageProps = { params: Promise<{ groupId: string }> };
 
-export async function generateMetadata({ params }: GroupPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: GroupPageProps): Promise<Metadata> {
   await connection();
   const parsedId = groupIdSchema.safeParse((await params).groupId);
   const fallback: Metadata = { title: { absolute: "Expense Splitter" } };
@@ -42,15 +44,42 @@ export default async function GroupPage({ params }: GroupPageProps) {
     throw error;
   }
 
-  const { group, members, balances, expenses, settlements, monthlyTotals, suggestedTransfers } = overview;
+  const {
+    group,
+    members,
+    balances,
+    expenses,
+    settlements,
+    monthlyTotals,
+    suggestedTransfers,
+  } = overview;
   return (
     <div className="min-w-0 space-y-12">
       <GroupHeader group={group} />
       <div className="grid min-w-0 items-start gap-12 lg:grid-cols-[minmax(0,1fr)_24rem] lg:[grid-template-areas:'expenses_balances'_'expenses_settle'_'totals_members']">
-        <BalancesPanel balances={balances} currency={group.currency} className="lg:[grid-area:balances]" />
-        <SettleUpPanel transfers={suggestedTransfers} settlements={settlements} members={members} currency={group.currency} className="lg:[grid-area:settle]" />
-        <ExpensesTable expenses={expenses} members={members} currency={group.currency} className="lg:[grid-area:expenses]" />
-        <MonthlyTotals totals={monthlyTotals} currency={group.currency} className="lg:[grid-area:totals]" />
+        <BalancesPanel
+          balances={balances}
+          currency={group.currency}
+          className="lg:[grid-area:balances]"
+        />
+        <SettleUpPanel
+          transfers={suggestedTransfers}
+          settlements={settlements}
+          members={members}
+          currency={group.currency}
+          className="lg:[grid-area:settle]"
+        />
+        <ExpensesTable
+          expenses={expenses}
+          members={members}
+          currency={group.currency}
+          className="lg:[grid-area:expenses]"
+        />
+        <MonthlyTotals
+          totals={monthlyTotals}
+          currency={group.currency}
+          className="lg:[grid-area:totals]"
+        />
         <MembersPanel members={members} className="lg:[grid-area:members]" />
       </div>
     </div>

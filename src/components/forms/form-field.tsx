@@ -9,7 +9,13 @@ type FormFieldProps = {
   children: ReactNode;
 };
 
-export function FormField({ id, label, hint, error, children }: FormFieldProps) {
+export function FormField({
+  id,
+  label,
+  hint,
+  error,
+  children,
+}: FormFieldProps) {
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>

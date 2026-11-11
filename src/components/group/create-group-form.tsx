@@ -37,9 +37,14 @@ export function CreateGroupForm() {
       <h2 id="create-group-heading" className="text-xl font-medium">
         Create a group
       </h2>
-      <FormErrorSummary message={state.status === "error" ? state.message : undefined} />
+      <FormErrorSummary
+        message={state.status === "error" ? state.message : undefined}
+      />
       {/* Remount uncontrolled fields when returned defaults change after an error. */}
-      <fieldset key={JSON.stringify(state.values ?? {})} className="min-w-0 space-y-6">
+      <fieldset
+        key={JSON.stringify(state.values ?? {})}
+        className="min-w-0 space-y-6"
+      >
         <legend className="sr-only">Group details</legend>
         <FormField
           id="group-name"
@@ -75,10 +80,14 @@ export function CreateGroupForm() {
             className="min-h-11 w-full min-w-0 border border-input bg-background px-3 py-3 text-base text-foreground focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-foreground focus-visible:outline-offset-2 aria-invalid:border-destructive"
           >
             {!currencyIsSupported && (
-              <option value={currency} disabled>Choose a currency</option>
+              <option value={currency} disabled>
+                Choose a currency
+              </option>
             )}
             {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
-              <option key={code} value={code}>{currencyLabels[code]}</option>
+              <option key={code} value={code}>
+                {currencyLabels[code]}
+              </option>
             ))}
           </select>
         </FormField>

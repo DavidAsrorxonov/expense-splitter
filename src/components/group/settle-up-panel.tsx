@@ -15,10 +15,21 @@ type SettleUpPanelProps = {
   className?: string;
 };
 
-export function SettleUpPanel({ transfers, settlements, members, currency, className }: SettleUpPanelProps) {
+export function SettleUpPanel({
+  transfers,
+  settlements,
+  members,
+  currency,
+  className,
+}: SettleUpPanelProps) {
   return (
-    <section aria-labelledby="settle-up-heading" className={cn("min-w-0 border border-border p-6", className)}>
-      <h2 id="settle-up-heading" className="text-xl font-medium">Settle up</h2>
+    <section
+      aria-labelledby="settle-up-heading"
+      className={cn("min-w-0 border border-border p-6", className)}
+    >
+      <h2 id="settle-up-heading" className="text-xl font-medium">
+        Settle up
+      </h2>
       {transfers.length === 0 ? (
         <p className="mt-6 flex items-start gap-2">
           <Check className="mt-1 size-4 shrink-0" aria-hidden="true" />
@@ -31,12 +42,18 @@ export function SettleUpPanel({ transfers, settlements, members, currency, class
             const to = memberName(transfer.to, members);
             return (
               <li key={`${transfer.from}-${transfer.to}`}>
-                <span className="sr-only">{transferSentence(from, to, transfer.amountMinor, currency)}</span>
+                <span className="sr-only">
+                  {transferSentence(from, to, transfer.amountMinor, currency)}
+                </span>
                 <div aria-hidden="true" className="flex items-start gap-2">
                   <ArrowRight className="mt-1 size-4 shrink-0 text-brand-accent" />
                   <p>
                     {from} pays {to}{" "}
-                    <Amount minor={transfer.amountMinor} currency={currency} className="text-brand-accent" />
+                    <Amount
+                      minor={transfer.amountMinor}
+                      currency={currency}
+                      className="text-brand-accent"
+                    />
                   </p>
                 </div>
               </li>
@@ -44,7 +61,11 @@ export function SettleUpPanel({ transfers, settlements, members, currency, class
           })}
         </ul>
       )}
-      <SettlementHistory settlements={settlements} members={members} currency={currency} />
+      <SettlementHistory
+        settlements={settlements}
+        members={members}
+        currency={currency}
+      />
     </section>
   );
 }
