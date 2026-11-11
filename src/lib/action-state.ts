@@ -29,3 +29,10 @@ export function fromServiceError(
   }
   throw error;
 }
+
+export type FormAction = (previous: ActionState, formData: FormData) => Promise<ActionState>;
+
+export function fieldValue(state: ActionState, field: string, fallback = ""): string {
+  const value = state.values?.[field];
+  return typeof value === "string" ? value : fallback;
+}

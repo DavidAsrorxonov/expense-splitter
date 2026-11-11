@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { AddExpenseForm } from "@/components/group/add-expense-form";
 import { BalancesPanel } from "@/components/group/balances-panel";
 import { ExpensesTable } from "@/components/group/expenses-table";
 import { GroupHeader } from "@/components/group/group-header";
@@ -12,6 +13,11 @@ import { groupIdSchema } from "@/lib/schemas";
 import { NotFoundError } from "@/services/errors";
 import { getGroup } from "@/services/group-service";
 import { getGroupOverview } from "@/services/overview-service";
+
+import {
+  addExpenseAction, addMemberAction, archiveExpenseAction, archiveMemberAction,
+  recordManualPaymentAction, recordPaymentAction,
+} from "./actions";
 
 type GroupPageProps = { params: Promise<{ groupId: string }> };
 
@@ -53,10 +59,12 @@ export default async function GroupPage({ params }: GroupPageProps) {
     monthlyTotals,
     suggestedTransfers,
   } = overview;
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   return (
     <div className="min-w-0 space-y-12">
       <GroupHeader group={group} />
-      <div className="grid min-w-0 items-start gap-12 lg:grid-cols-[minmax(0,1fr)_24rem] lg:[grid-template-areas:'expenses_balances'_'expenses_settle'_'totals_members']">
+      <div className="grid min-w-0 items-start gap-12 lg:grid-cols-[minmax(0,1fr)_24rem] lg:[grid-template-areas:'expenses_balances'_'expenses_settle'_'totals_add'_'totals_members']">
         <BalancesPanel
           balances={balances}
           currency={group.currency}
@@ -67,12 +75,25 @@ export default async function GroupPage({ params }: GroupPageProps) {
           settlements={settlements}
           members={members}
           currency={group.currency}
+          groupId={group.id}
+          suggestedAction={recordPaymentAction.bind(null, group.id)}
+          manualAction={recordManualPaymentAction.bind(null, group.id)}
           className="lg:[grid-area:settle]"
+        />
+        <AddExpenseForm
+          action={addExpenseAction.bind(null, group.id)}
+          groupId={group.id}
+          members={members}
+          currency={group.currency}
+          today={today}
+          className="lg:[grid-area:add]"
         />
         <ExpensesTable
           expenses={expenses}
           members={members}
           currency={group.currency}
+          groupId={group.id}
+          archiveAction={archiveExpenseAction.bind(null, group.id)}
           className="lg:[grid-area:expenses]"
         />
         <MonthlyTotals
@@ -80,7 +101,8 @@ export default async function GroupPage({ params }: GroupPageProps) {
           currency={group.currency}
           className="lg:[grid-area:totals]"
         />
-        <MembersPanel members={members} className="lg:[grid-area:members]" />
+        <MembersPanel members={members} groupId={group.id} addAction={addMemberAction.bind(null, group.id)}
+          archiveAction={archiveMemberAction.bind(null, group.id)} className="lg:[grid-area:members]" />
       </div>
     </div>
   );
