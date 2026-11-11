@@ -1,4 +1,5 @@
 import { BladeAccent } from "@/components/brand/blade-accent";
+import { CreateGroupForm } from "@/components/group/create-group-form";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
       <p className="max-w-[62ch] text-base text-text-secondary">
         Keep track of shared expenses and see who owes whom.
       </p>
+      <CreateGroupForm />
     </div>
   );
 }
