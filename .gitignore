@@ -47,3 +47,5 @@ data/*.db-wal
 
 
 ARCHITECTURE.md
+PHASE3.md
+DESIGN.md
