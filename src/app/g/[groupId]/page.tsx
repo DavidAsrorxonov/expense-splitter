@@ -9,7 +9,7 @@ import { RecordPaymentForm } from "@/components/group/record-payment-form";
 import { SettlementHistory } from "@/components/group/settlement-history";
 import { GroupHeader } from "@/components/group/group-header";
 import { MembersPanel } from "@/components/group/members-panel";
-import { MonthlyTotals } from "@/components/group/monthly-totals";
+import { ExpenseOverview } from "@/components/group/expense-overview";
 import { SettleUpPanel } from "@/components/group/settle-up-panel";
 import { getAppDb } from "@/lib/db";
 import { groupIdSchema } from "@/lib/schemas";
@@ -18,8 +18,12 @@ import { getGroup } from "@/services/group-service";
 import { getGroupOverview } from "@/services/overview-service";
 
 import {
-  addExpenseAction, addMemberAction, archiveExpenseAction, archiveMemberAction,
-  recordManualPaymentAction, recordPaymentAction,
+  addExpenseAction,
+  addMemberAction,
+  archiveExpenseAction,
+  archiveMemberAction,
+  recordManualPaymentAction,
+  recordPaymentAction,
 } from "./actions";
 
 type GroupPageProps = { params: Promise<{ groupId: string }> };
@@ -66,34 +70,75 @@ export default async function GroupPage({ params }: GroupPageProps) {
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   return (
     <div className="min-w-0 space-y-8">
-      <GroupHeader group={group} actions={
-        <GroupActions key={group.id} groupId={group.id} members={members} currency={group.currency} today={today}
-          expenseAction={addExpenseAction.bind(null, group.id)} memberAction={addMemberAction.bind(null, group.id)} />
-      } />
-      <GroupTabs key={group.id}
+      <GroupHeader
+        group={group}
+        actions={
+          <GroupActions
+            key={group.id}
+            groupId={group.id}
+            members={members}
+            currency={group.currency}
+            today={today}
+            expenseAction={addExpenseAction.bind(null, group.id)}
+            memberAction={addMemberAction.bind(null, group.id)}
+          />
+        }
+      />
+      <GroupTabs
+        key={group.id}
         expenses={
           <div className="min-w-0 space-y-12">
-            <ExpensesTable expenses={expenses} members={members} currency={group.currency} groupId={group.id}
-              archiveAction={archiveExpenseAction.bind(null, group.id)} />
-            <MonthlyTotals totals={monthlyTotals} currency={group.currency} className="max-w-2xl" />
+            <ExpenseOverview
+              expenses={expenses}
+              members={members}
+              monthlyTotals={monthlyTotals}
+              currency={group.currency}
+            />
+            <ExpensesTable
+              expenses={expenses}
+              members={members}
+              currency={group.currency}
+              groupId={group.id}
+              archiveAction={archiveExpenseAction.bind(null, group.id)}
+            />
           </div>
         }
         balances={
           <div className="grid min-w-0 items-start gap-6 md:grid-cols-2">
             <BalancesPanel balances={balances} currency={group.currency} />
-            <SettleUpPanel transfers={suggestedTransfers} members={members} currency={group.currency}
-              groupId={group.id} suggestedAction={recordPaymentAction.bind(null, group.id)} />
+            <SettleUpPanel
+              transfers={suggestedTransfers}
+              members={members}
+              currency={group.currency}
+              groupId={group.id}
+              suggestedAction={recordPaymentAction.bind(null, group.id)}
+            />
           </div>
         }
         payments={
           <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[24rem_minmax(0,1fr)]">
-            <RecordPaymentForm mode="manual" action={recordManualPaymentAction.bind(null, group.id)}
-              groupId={group.id} members={members} currency={group.currency} />
-            <SettlementHistory key={settlements[0]?.id ?? "empty"} settlements={settlements} members={members} currency={group.currency} />
+            <RecordPaymentForm
+              mode="manual"
+              action={recordManualPaymentAction.bind(null, group.id)}
+              groupId={group.id}
+              members={members}
+              currency={group.currency}
+            />
+            <SettlementHistory
+              key={settlements[0]?.id ?? "empty"}
+              settlements={settlements}
+              members={members}
+              currency={group.currency}
+            />
           </div>
         }
         members={
-          <MembersPanel members={members} groupId={group.id} archiveAction={archiveMemberAction.bind(null, group.id)} className="max-w-2xl" />
+          <MembersPanel
+            members={members}
+            groupId={group.id}
+            archiveAction={archiveMemberAction.bind(null, group.id)}
+            className="max-w-2xl"
+          />
         }
       />
     </div>

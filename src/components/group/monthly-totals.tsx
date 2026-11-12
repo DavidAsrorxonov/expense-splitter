@@ -8,7 +8,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { CurrencyCode } from "@/domain/currency";
-import { monthBarPercents } from "@/lib/presenters";
 import { cn } from "@/lib/utils";
 import type { MonthlyTotal } from "@/types";
 
@@ -23,15 +22,14 @@ export function MonthlyTotals({
   currency,
   className,
 }: MonthlyTotalsProps) {
-  const widths = monthBarPercents(totals);
   return (
     <section
       aria-labelledby="monthly-totals-heading"
       className={cn("min-w-0 border-t border-border pt-6", className)}
     >
-      <h2 id="monthly-totals-heading" className="mb-6 text-xl font-medium">
+      <h4 id="monthly-totals-heading" className="mb-6 text-base font-medium">
         Monthly totals
-      </h2>
+      </h4>
       {totals.length === 0 ? (
         <p className="text-text-secondary">No spending recorded yet.</p>
       ) : (
@@ -46,18 +44,12 @@ export function MonthlyTotals({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {totals.map((total, index) => (
+            {totals.map((total) => (
               <TableRow key={total.month}>
                 <TableCell className="w-1/2">
                   <time dateTime={total.month} className="font-mono">
                     {total.month}
                   </time>
-                  <div aria-hidden="true" className="mt-2 h-1 w-full">
-                    <div
-                      className="h-full bg-brand-accent"
-                      style={{ width: `${widths[index]}%` }}
-                    />
-                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <Amount minor={total.totalMinor} currency={currency} />
