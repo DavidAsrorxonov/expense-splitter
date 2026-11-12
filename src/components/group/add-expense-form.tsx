@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Check } from "lucide-react";
+import { DatePickerInput } from "@/components/forms/date-picker-input";
 import { FormErrorSummary } from "@/components/forms/form-error-summary";
 import { FormField } from "@/components/forms/form-field";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -54,9 +55,10 @@ export function AddExpenseForm({ action, groupId, members, currency, today, clas
             <Input id="expense-amount" name="amount" type="text" inputMode={whole ? "numeric" : "decimal"} required
               defaultValue={fieldValue(state, "amount")} aria-invalid={Boolean(state.fieldErrors?.amount)} aria-describedby="expense-amount-description" />
           </FormField>
-          <FormField id="expense-date" label="Date" error={state.fieldErrors?.spentOn}>
-            <Input id="expense-date" name="spentOn" type="date" required defaultValue={fieldValue(state, "spentOn", today)}
-              aria-invalid={Boolean(state.fieldErrors?.spentOn)} aria-describedby={state.fieldErrors?.spentOn ? "expense-date-description" : undefined} />
+          <FormField id="expense-date" label="Date" hint="Type YYYY-MM-DD or Month DD, YYYY." error={state.fieldErrors?.spentOn}>
+            <DatePickerInput id="expense-date" name="spentOn" defaultValue={fieldValue(state, "spentOn", today)}
+              today={today} resetKey={state} disabled={disabled} invalid={Boolean(state.fieldErrors?.spentOn)}
+              describedBy="expense-date-description" />
           </FormField>
           <FormField id="expense-note" label="Note (optional)" error={state.fieldErrors?.note}>
             <Input id="expense-note" name="note" maxLength={200} defaultValue={fieldValue(state, "note")}
