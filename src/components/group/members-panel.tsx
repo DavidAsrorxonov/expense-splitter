@@ -6,11 +6,10 @@ import { FormErrorSummary } from "@/components/forms/form-error-summary";
 import { initialActionState, type FormAction } from "@/lib/action-state";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types";
-import { AddMemberForm } from "./add-member-form";
 import { ArchiveMemberDialog } from "./archive-member-dialog";
 
-export function MembersPanel({ members, groupId, addAction, archiveAction, className }: {
-  members: readonly Member[]; groupId: string; addAction: FormAction; archiveAction: FormAction; className?: string;
+export function MembersPanel({ members, groupId, archiveAction, className }: {
+  members: readonly Member[]; groupId: string; archiveAction: FormAction; className?: string;
 }) {
   const [state, formAction, pending] = useActionState(archiveAction, initialActionState, `/g/${groupId}`);
   const activeMembers = members.filter((member) => member.archivedAt === null);
@@ -20,7 +19,7 @@ export function MembersPanel({ members, groupId, addAction, archiveAction, class
     if (state.status === "success") headingRef.current?.focus();
   }, [state]);
   return (
-    <section aria-labelledby="members-heading" className={cn("min-w-0 border-t border-border pt-6", className)}>
+    <section aria-labelledby="members-heading" className={cn("min-w-0", className)}>
       <h2 ref={headingRef} tabIndex={-1} id="members-heading" className="mb-6 text-xl font-medium">Members</h2>
       <div ref={feedbackRef} tabIndex={-1}>
         <FormErrorSummary message={state.status === "error" ? state.message : undefined} />
@@ -29,7 +28,7 @@ export function MembersPanel({ members, groupId, addAction, archiveAction, class
         </p>
       </div>
       {activeMembers.length === 0 ? (
-        <p className="text-text-secondary">No active members yet. Add one below.</p>
+        <p className="text-text-secondary">No active members yet. Use “Add member” above to add someone to the group.</p>
       ) : (
         <ul className="space-y-3">
           {activeMembers.map((member) => (
@@ -40,7 +39,6 @@ export function MembersPanel({ members, groupId, addAction, archiveAction, class
           ))}
         </ul>
       )}
-      <AddMemberForm action={addAction} groupId={groupId} />
     </section>
   );
 }

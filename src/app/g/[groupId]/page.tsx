@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { AddExpenseForm } from "@/components/group/add-expense-form";
 import { BalancesPanel } from "@/components/group/balances-panel";
 import { ExpensesTable } from "@/components/group/expenses-table";
+import { GroupActions } from "@/components/group/group-actions";
+import { GroupTabs } from "@/components/group/group-tabs";
+import { RecordPaymentForm } from "@/components/group/record-payment-form";
+import { SettlementHistory } from "@/components/group/settlement-history";
 import { GroupHeader } from "@/components/group/group-header";
 import { MembersPanel } from "@/components/group/members-panel";
 import { MonthlyTotals } from "@/components/group/monthly-totals";
@@ -62,48 +65,37 @@ export default async function GroupPage({ params }: GroupPageProps) {
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   return (
-    <div className="min-w-0 space-y-12">
-      <GroupHeader group={group} />
-      <div className="grid min-w-0 items-start gap-12 lg:grid-cols-[minmax(0,1fr)_24rem] lg:[grid-template-areas:'expenses_balances'_'expenses_settle'_'totals_add'_'totals_members']">
-        <BalancesPanel
-          balances={balances}
-          currency={group.currency}
-          className="lg:[grid-area:balances]"
-        />
-        <SettleUpPanel
-          transfers={suggestedTransfers}
-          settlements={settlements}
-          members={members}
-          currency={group.currency}
-          groupId={group.id}
-          suggestedAction={recordPaymentAction.bind(null, group.id)}
-          manualAction={recordManualPaymentAction.bind(null, group.id)}
-          className="lg:[grid-area:settle]"
-        />
-        <AddExpenseForm
-          action={addExpenseAction.bind(null, group.id)}
-          groupId={group.id}
-          members={members}
-          currency={group.currency}
-          today={today}
-          className="lg:[grid-area:add]"
-        />
-        <ExpensesTable
-          expenses={expenses}
-          members={members}
-          currency={group.currency}
-          groupId={group.id}
-          archiveAction={archiveExpenseAction.bind(null, group.id)}
-          className="lg:[grid-area:expenses]"
-        />
-        <MonthlyTotals
-          totals={monthlyTotals}
-          currency={group.currency}
-          className="lg:[grid-area:totals]"
-        />
-        <MembersPanel members={members} groupId={group.id} addAction={addMemberAction.bind(null, group.id)}
-          archiveAction={archiveMemberAction.bind(null, group.id)} className="lg:[grid-area:members]" />
-      </div>
+    <div className="min-w-0 space-y-8">
+      <GroupHeader group={group} actions={
+        <GroupActions key={group.id} groupId={group.id} members={members} currency={group.currency} today={today}
+          expenseAction={addExpenseAction.bind(null, group.id)} memberAction={addMemberAction.bind(null, group.id)} />
+      } />
+      <GroupTabs key={group.id}
+        expenses={
+          <div className="min-w-0 space-y-12">
+            <ExpensesTable expenses={expenses} members={members} currency={group.currency} groupId={group.id}
+              archiveAction={archiveExpenseAction.bind(null, group.id)} />
+            <MonthlyTotals totals={monthlyTotals} currency={group.currency} className="max-w-2xl" />
+          </div>
+        }
+        balances={
+          <div className="grid min-w-0 items-start gap-6 md:grid-cols-2">
+            <BalancesPanel balances={balances} currency={group.currency} />
+            <SettleUpPanel transfers={suggestedTransfers} members={members} currency={group.currency}
+              groupId={group.id} suggestedAction={recordPaymentAction.bind(null, group.id)} />
+          </div>
+        }
+        payments={
+          <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[24rem_minmax(0,1fr)]">
+            <RecordPaymentForm mode="manual" action={recordManualPaymentAction.bind(null, group.id)}
+              groupId={group.id} members={members} currency={group.currency} />
+            <SettlementHistory key={settlements[0]?.id ?? "empty"} settlements={settlements} members={members} currency={group.currency} />
+          </div>
+        }
+        members={
+          <MembersPanel members={members} groupId={group.id} archiveAction={archiveMemberAction.bind(null, group.id)} className="max-w-2xl" />
+        }
+      />
     </div>
   );
 }

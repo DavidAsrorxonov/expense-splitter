@@ -62,8 +62,8 @@ export function RecordPaymentForm(props: RecordPaymentFormProps) {
   const disabled = members.length < 2;
   const whole = decimalsFor(currency) === 0;
   return (
-    <form action={formAction} noValidate aria-labelledby="manual-payment-heading" className="mt-8 space-y-4 border-t border-border pt-6">
-      <h3 id="manual-payment-heading" className="font-medium">Record a payment</h3>
+    <form action={formAction} noValidate aria-labelledby="manual-payment-heading" className="min-w-0 space-y-4 border border-border p-6">
+      <h2 id="manual-payment-heading" className="text-xl font-medium">Record a payment</h2>
       {disabled && <p className="text-sm text-text-secondary">Add at least two members to record a payment.</p>}
       {feedback}
       <fieldset key={JSON.stringify(state.values ?? {})} disabled={disabled} className="min-w-0 space-y-4 disabled:opacity-60">

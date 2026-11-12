@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { DatePickerInput } from "@/components/forms/date-picker-input";
 import { FormErrorSummary } from "@/components/forms/form-error-summary";
@@ -10,14 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { decimalsFor, type CurrencyCode } from "@/domain/currency";
 import { fieldValue, initialActionState, type FormAction } from "@/lib/action-state";
-import { cn } from "@/lib/utils";
 import type { Member } from "@/types";
 import { ParticipantPicker } from "./participant-picker";
 
-export function AddExpenseForm({ action, groupId, members, currency, today, className }: {
-  action: FormAction; groupId: string; members: readonly Member[]; currency: CurrencyCode; today: string; className?: string;
+export function AddExpenseForm({ action, groupId, members, currency, today, onSuccess }: {
+  action: FormAction; groupId: string; members: readonly Member[]; currency: CurrencyCode; today: string; onSuccess?: () => void;
 }) {
   const [state, formAction] = useActionState(action, initialActionState, `/g/${groupId}`);
+  useEffect(() => {
+    if (state.status === "success") onSuccess?.();
+  }, [state, onSuccess]);
   const activeMembers = members.filter((member) => member.archivedAt === null);
   const disabled = activeMembers.length === 0;
   const [payerSelection, setPayerSelection] = useState({ state, value: fieldValue(state, "paidBy") });
@@ -28,10 +30,9 @@ export function AddExpenseForm({ action, groupId, members, currency, today, clas
   const selectedIds = state.values?.participantIds;
   const whole = decimalsFor(currency) === 0;
   return (
-    <section aria-labelledby="add-expense-heading" className={cn("min-w-0 border border-border p-6", className)}>
-      <h2 id="add-expense-heading" className="text-xl font-medium">Add expense</h2>
+    <div className="min-w-0">
       {disabled && <p className="mt-4 text-sm text-text-secondary">Add at least one member first.</p>}
-      <form action={formAction} noValidate className="mt-6 space-y-6" aria-labelledby="add-expense-heading">
+      <form action={formAction} noValidate className="mt-6 space-y-6" aria-label="Add expense">
         <FormErrorSummary message={state.status === "error" ? state.message : undefined} />
         <fieldset key={JSON.stringify(state.values ?? {})} disabled={disabled} className="min-w-0 space-y-6 disabled:opacity-60">
           <legend className="sr-only">Expense details</legend>
@@ -68,9 +69,9 @@ export function AddExpenseForm({ action, groupId, members, currency, today, clas
           <SubmitButton disabled={disabled}>Add expense</SubmitButton>
         </fieldset>
         <p role="status" aria-live="polite" className="flex items-start gap-2 text-sm">
-          {state.status === "success" && <><Check className="mt-1 size-4 shrink-0" aria-hidden="true" />{state.message}</>}
+          {state.status === "success" && !onSuccess && <><Check className="mt-1 size-4 shrink-0" aria-hidden="true" />{state.message}</>}
         </p>
       </form>
-    </section>
+    </div>
   );
 }

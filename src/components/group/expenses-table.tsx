@@ -48,7 +48,7 @@ export function ExpensesTable({
   return (
     <section
       aria-labelledby="expenses-heading"
-      className={cn("min-w-0 border-t border-border pt-6", className)}
+      className={cn("min-w-0", className)}
     >
       <h2
         ref={headingRef}
@@ -75,7 +75,7 @@ export function ExpensesTable({
       </p>
       {expenses.length === 0 ? (
         <p className="text-text-secondary">
-          No expenses yet. Add the first one above.
+          No expenses yet. Use “Add expense” above to record the first one.
         </p>
       ) : (
         <Table
