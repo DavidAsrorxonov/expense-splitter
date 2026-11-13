@@ -26,3 +26,21 @@ export function formatAmount(
     minor / 10 ** decimals,
   );
 }
+
+export function toDecimalString(minor: number, currency: CurrencyCode): string {
+  if (!Number.isSafeInteger(minor)) {
+    throw new RangeError("Amount must be a safe integer");
+  }
+
+  const decimals = decimalsFor(currency);
+  const sign = minor < 0 ? "-" : "";
+  const digits = String(Math.abs(minor));
+
+  if (decimals === 0) return sign + digits;
+
+  const padded = digits.padStart(decimals + 1, "0");
+  const whole = padded.slice(0, -decimals);
+  const fraction = padded.slice(-decimals);
+
+  return `${sign}${whole}.${fraction}`;
+}
