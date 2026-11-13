@@ -119,3 +119,35 @@ export function monthlyTotals(db: Db, groupId: string): MonthlyTotal[] {
     .all(groupId) as { month: string; total_minor: number }[];
   return rows.map((r) => ({ month: r.month, totalMinor: r.total_minor }));
 }
+
+/**
+ * Full-text search over expense notes, best match first.
+ * `ftsQuery` must come from buildSearchQuery (never raw user input).
+ */
+export function searchExpenses(
+  db: Db,
+  groupId: string,
+  ftsQuery: string,
+  options: { includeArchived?: boolean; limit?: number } = {},
+): Expense[] {
+  const rows = db
+    .prepare(
+      `SELECT e.id, e.group_id, e.paid_by, e.amount_minor, e.note,
+              e.spent_on, e.created_at, e.archived_at
+       FROM expenses_fts
+       JOIN expenses e ON e.id = expenses_fts.rowid
+       WHERE expenses_fts MATCH ?
+         AND e.group_id = ?
+         AND (? = 1 OR e.archived_at IS NULL)
+       ORDER BY bm25(expenses_fts), e.spent_on DESC, e.id DESC
+       LIMIT ?`,
+    )
+    .all(
+      ftsQuery,
+      groupId,
+      options.includeArchived ? 1 : 0,
+      options.limit ?? 50,
+    ) as ExpenseRow[];
+
+  return rows.map(toExpense);
+}
