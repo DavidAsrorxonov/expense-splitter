@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -10,10 +10,12 @@ import { formatAmount } from "@/domain/money";
 import { monthLabel, monthlySpendingPage } from "@/lib/chart-data";
 import type { MonthlyTotal } from "@/types";
 import { MonthlyTotals } from "./monthly-totals";
+import { GroupPanelVisibilityContext } from "./group-panel-visibility";
 
 const chartConfig = { totalMinor: { label: "Spending", color: "var(--brand-accent)" } } satisfies ChartConfig;
 
 export function MonthlySpendingChart({ totals, currency }: { totals: readonly MonthlyTotal[]; currency: CurrencyCode }) {
+  const panelVisible = useContext(GroupPanelVisibilityContext);
   const [requestedPage, setRequestedPage] = useState(1);
   const { items, page, pageCount } = monthlySpendingPage(totals, requestedPage);
   const maximum = Math.max(1, ...items.map((item) => item.totalMinor));
@@ -33,7 +35,7 @@ export function MonthlySpendingChart({ totals, currency }: { totals: readonly Mo
               <Button variant="outline" disabled={page === 1} onClick={() => setRequestedPage(page - 1)}>Later months</Button>
             </nav>}
           </div>
-          <ChartContainer config={chartConfig} className="h-72 min-h-72 w-full aspect-auto sm:h-80" aria-label="Monthly spending bar chart">
+          {panelVisible && <ChartContainer config={chartConfig} className="h-72 min-h-72 w-full aspect-auto sm:h-80" aria-label="Monthly spending bar chart">
             <BarChart accessibilityLayer aria-label={`Monthly spending in ${currency}`} data={items} margin={{ top: 12, right: 12, bottom: 8, left: 0 }}>
               <CartesianGrid vertical={false} stroke="var(--border)" />
               <XAxis dataKey="month" tickFormatter={monthLabel} tickLine={false} axisLine={false} minTickGap={24} tickMargin={12} />
@@ -45,7 +47,7 @@ export function MonthlySpendingChart({ totals, currency }: { totals: readonly Mo
               } />
               <Bar dataKey="totalMinor" fill="var(--color-totalMinor)" maxBarSize={64} isAnimationActive={false} />
             </BarChart>
-          </ChartContainer>
+          </ChartContainer>}
           <details>
             <summary className="min-h-11 cursor-pointer py-3 text-sm underline-offset-4 hover:underline">View exact monthly totals</summary>
             <MonthlyTotals totals={items} currency={currency} />

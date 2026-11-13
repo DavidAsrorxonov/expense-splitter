@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
+import { GroupPanelVisibilityContext } from "./group-panel-visibility";
 
 const tabs = [
   { value: "expenses", label: "Expenses" },
@@ -60,6 +61,13 @@ export function GroupTabs(panels: GroupTabsProps) {
       {tabs.map((tab) => (
         <Tabs.Panel key={tab.value} value={tab.value} keepMounted
           className={`min-w-0 pt-8${hydrated ? " data-hidden:hidden" : ""}`}
+          render={(props, state) => (
+            <div {...props}>
+              <GroupPanelVisibilityContext.Provider value={!hydrated || (activeTab === tab.value && !state.hidden)}>
+                {props.children}
+              </GroupPanelVisibilityContext.Provider>
+            </div>
+          )}
           {...(!hydrated ? {
             hidden: false, inert: false, role: "region", tabIndex: -1,
             "aria-labelledby": `group-section-link-${tab.value}`,

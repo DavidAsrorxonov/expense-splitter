@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Amount } from "@/components/money/amount";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import type { CurrencyCode } from "@/domain/currency";
 import { formatAmount } from "@/domain/money";
 import type { spendingByPayer } from "@/lib/chart-data";
 import { paginate } from "@/lib/pagination";
+import { GroupPanelVisibilityContext } from "./group-panel-visibility";
 
 const chartConfig = { totalMinor: { label: "Paid", color: "var(--brand-accent)" } } satisfies ChartConfig;
 
@@ -17,6 +18,7 @@ export function PayerSpendingChart({ payers, currency }: {
   payers: ReturnType<typeof spendingByPayer>;
   currency: CurrencyCode;
 }) {
+  const panelVisible = useContext(GroupPanelVisibilityContext);
   const [requestedPage, setRequestedPage] = useState(1);
   const { items, page, pageCount, first, last, total } = paginate(payers, requestedPage);
   // Keep the same scale on every page so bars remain comparable.
@@ -38,7 +40,7 @@ export function PayerSpendingChart({ payers, currency }: {
               <Button variant="outline" disabled={page === pageCount} onClick={() => setRequestedPage(page + 1)}>Next</Button>
             </nav>
           </div>}
-          <ChartContainer config={chartConfig} className="min-h-40 w-full aspect-auto" style={{ height: Math.max(160, items.length * 48 + 48) }} aria-label="Spending by payer horizontal bar chart">
+          {panelVisible && <ChartContainer config={chartConfig} className="min-h-40 w-full aspect-auto" style={{ height: Math.max(160, items.length * 48 + 48) }} aria-label="Spending by payer horizontal bar chart">
             <BarChart accessibilityLayer aria-label={`Spending by payer in ${currency}`} layout="vertical" data={items} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
               <CartesianGrid horizontal={false} stroke="var(--border)" />
               <YAxis type="category" dataKey="name" width={100} tickLine={false} axisLine={false}
@@ -50,7 +52,7 @@ export function PayerSpendingChart({ payers, currency }: {
               } />
               <Bar dataKey="totalMinor" fill="var(--color-totalMinor)" maxBarSize={28} isAnimationActive={false} />
             </BarChart>
-          </ChartContainer>
+          </ChartContainer>}
           <details>
             <summary className="min-h-11 cursor-pointer py-3 text-sm underline-offset-4 hover:underline">View full names and exact amounts</summary>
             <Table aria-label="Spending by payer totals" containerLabel="Spending by payer totals">

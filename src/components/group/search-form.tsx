@@ -9,7 +9,12 @@ type SearchFormProps = GroupView & {
   resultCount?: number;
 };
 
-export function SearchForm({ groupId, q, showArchived, resultCount = 0 }: SearchFormProps) {
+export function SearchForm({
+  groupId,
+  q,
+  showArchived,
+  resultCount = 0,
+}: SearchFormProps) {
   let message = "";
   if (q) {
     if (buildSearchQuery(q) === null) {
@@ -45,9 +50,12 @@ export function SearchForm({ groupId, q, showArchived, resultCount = 0 }: Search
             defaultValue={q}
             className="basis-full sm:flex-1 sm:basis-64"
             aria-describedby="expense-search-help expense-search-status"
+            placeholder="Type a keyword to search..."
           />
           {showArchived && <input type="hidden" name="archived" value="1" />}
-          <Button type="submit" variant="secondary">Search</Button>
+          <Button type="submit" variant="secondary">
+            Search
+          </Button>
           {q && (
             <a
               href={`${groupHref(groupId, { showArchived })}#expenses-heading`}
@@ -61,7 +69,12 @@ export function SearchForm({ groupId, q, showArchived, resultCount = 0 }: Search
           Search active expense notes. Charts show all active spending.
         </p>
       </form>
-      <p id="expense-search-status" role="status" aria-live="polite" className="text-sm wrap-anywhere">
+      <p
+        id="expense-search-status"
+        role="status"
+        aria-live="polite"
+        className="text-sm wrap-anywhere"
+      >
         {message}
       </p>
     </div>

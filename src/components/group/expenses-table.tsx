@@ -7,6 +7,7 @@ import { initialActionState, type FormAction } from "@/lib/action-state";
 import { ArchiveExpenseForm } from "./archive-expense-form";
 import { ArchivedToggle } from "./archived-toggle";
 import { Amount } from "@/components/money/amount";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -58,15 +59,29 @@ export function ExpensesTable({
     >
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2
-        ref={headingRef}
-        tabIndex={-1}
-        id="expenses-heading"
-        className="text-xl font-medium"
-      >
-        Expenses
-      </h2>
-        <ArchivedToggle groupId={groupId} view={view} section="expenses" />
+          ref={headingRef}
+          tabIndex={-1}
+          id="expenses-heading"
+          className="text-xl font-medium"
+        >
+          Expenses
+        </h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <ArchivedToggle groupId={groupId} view={view} section="expenses" />
+          <a
+            href={`${groupHref(groupId, {})}/export${view.showArchived ? "?archived=1" : ""}`}
+            className={buttonVariants({ variant: "secondary", className: "max-w-full" })}
+            aria-describedby={view.q ? "expense-export-help" : undefined}
+          >
+            {view.showArchived ? "Export CSV (including archived)" : "Export CSV"}
+          </a>
+        </div>
       </div>
+      {view.q && (
+        <p id="expense-export-help" className="mb-4 text-sm text-text-secondary">
+          CSV exports include all {view.showArchived ? "active and archived" : "active"} expenses, regardless of your search.
+        </p>
+      )}
       {searchForm}
       <FormErrorSummary
         message={state.status === "error" ? state.message : undefined}
