@@ -6,13 +6,14 @@ import { getAppDb } from "@/lib/db";
 import {
   parseAddExpenseForm, parseAddMemberForm, parseArchiveExpenseForm,
   parseArchiveMemberForm, parseManualPaymentForm, parseRecordPaymentForm,
-  readFormValues,
+  parseRestoreExpenseForm, parseRestoreMemberForm, readFormValues,
 } from "@/lib/forms";
 import { groupIdSchema } from "@/lib/schemas";
 import { ValidationError } from "@/services/errors";
 import { addExpense, archiveExpense } from "@/services/expense-service";
 import { addMember, archiveMember, getGroup } from "@/services/group-service";
 import { recordSettlement } from "@/services/settle-service";
+import { restoreExpense, restoreMember } from "@/services/archive-service";
 
 export async function addMemberAction(groupId: string, _previous: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = parseAddMemberForm(formData);
@@ -98,4 +99,30 @@ export async function archiveMemberAction(groupId: string, _previous: ActionStat
   }
   revalidatePath(`/g/${groupId}`);
   return ok("Member archived.");
+}
+
+export async function restoreExpenseAction(groupId: string, _previous: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = parseRestoreExpenseForm(formData);
+  if (!groupIdSchema.safeParse(groupId).success) return fail("Invalid group link.", { values: parsed.values });
+  if (!parsed.success) return fail("Choose a valid expense to restore.", { fieldErrors: parsed.fieldErrors, values: parsed.values });
+  try {
+    restoreExpense(getAppDb(), groupId, parsed.data.expenseId);
+  } catch (error) {
+    return fromServiceError(error, parsed.values);
+  }
+  revalidatePath(`/g/${groupId}`);
+  return ok("Expense restored.");
+}
+
+export async function restoreMemberAction(groupId: string, _previous: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = parseRestoreMemberForm(formData);
+  if (!groupIdSchema.safeParse(groupId).success) return fail("Invalid group link.", { values: parsed.values });
+  if (!parsed.success) return fail("Choose a valid member to restore.", { fieldErrors: parsed.fieldErrors, values: parsed.values });
+  try {
+    restoreMember(getAppDb(), groupId, parsed.data.memberId);
+  } catch (error) {
+    return fromServiceError(error, parsed.values);
+  }
+  revalidatePath(`/g/${groupId}`);
+  return ok("Member restored.");
 }

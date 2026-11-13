@@ -121,3 +121,11 @@ export function parseArchiveExpenseForm(formData: FormData) {
 export function parseArchiveMemberForm(formData: FormData) {
   return parseFields(formData, z.object({ memberId: positiveIdSchema }), ["memberId"]);
 }
+
+export function parseRestoreExpenseForm(formData: FormData) {
+  return parseFields(formData, z.object({ expenseId: positiveIdSchema }), ["expenseId"]);
+}
+
+export function parseRestoreMemberForm(formData: FormData) {
+  return parseFields(formData, z.object({ memberId: positiveIdSchema }), ["memberId"]);
+}

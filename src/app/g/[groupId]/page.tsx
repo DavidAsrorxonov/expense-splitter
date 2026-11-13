@@ -12,6 +12,8 @@ import { MembersPanel } from "@/components/group/members-panel";
 import { ExpenseOverview } from "@/components/group/expense-overview";
 import { SettleUpPanel } from "@/components/group/settle-up-panel";
 import { SearchForm } from "@/components/group/search-form";
+import { ArchivedExpensesTable } from "@/components/group/archived-expenses-table";
+import { ArchivedMembersList } from "@/components/group/archived-members-list";
 import { getAppDb } from "@/lib/db";
 import { parseGroupViewParams, type GroupViewParams } from "@/lib/group-view";
 import { groupIdSchema } from "@/lib/schemas";
@@ -19,6 +21,7 @@ import { NotFoundError } from "@/services/errors";
 import { getGroup } from "@/services/group-service";
 import { getGroupOverview } from "@/services/overview-service";
 import { searchGroupExpenses } from "@/services/search-service";
+import { getArchivedItems } from "@/services/archive-service";
 import type { Expense } from "@/types";
 
 import {
@@ -28,6 +31,8 @@ import {
   archiveMemberAction,
   recordManualPaymentAction,
   recordPaymentAction,
+  restoreExpenseAction,
+  restoreMemberAction,
 } from "./actions";
 
 type GroupPageProps = {
@@ -59,10 +64,12 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
   let overview;
   let searchResults: Expense[] | undefined;
+  let archived: ReturnType<typeof getArchivedItems> | undefined;
   try {
     const db = getAppDb();
     overview = getGroupOverview(db, parsedId.data);
     if (view.q) searchResults = searchGroupExpenses(db, parsedId.data, view.q);
+    if (view.showArchived) archived = getArchivedItems(db, parsedId.data);
   } catch (error) {
     if (error instanceof NotFoundError) notFound();
     throw error;
@@ -120,6 +127,16 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                 />
               }
             />
+            {archived && (
+              <ArchivedExpensesTable
+                expenses={archived.expenses}
+                members={members}
+                currency={group.currency}
+                groupId={group.id}
+                view={view}
+                restoreAction={restoreExpenseAction.bind(null, group.id)}
+              />
+            )}
           </div>
         }
         balances={
@@ -157,6 +174,15 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
             groupId={group.id}
             archiveAction={archiveMemberAction.bind(null, group.id)}
             className="max-w-2xl"
+            view={view}
+            archivedMembers={archived && (
+              <ArchivedMembersList
+                members={archived.members}
+                groupId={group.id}
+                view={view}
+                restoreAction={restoreMemberAction.bind(null, group.id)}
+              />
+            )}
           />
         }
       />

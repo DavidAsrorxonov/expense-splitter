@@ -1,17 +1,20 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { FormErrorSummary } from "@/components/forms/form-error-summary";
 import { initialActionState, type FormAction } from "@/lib/action-state";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types";
 import { ArchiveMemberDialog } from "./archive-member-dialog";
+import { ArchivedToggle } from "./archived-toggle";
+import { groupHref, type GroupView } from "@/lib/group-view";
 
-export function MembersPanel({ members, groupId, archiveAction, className }: {
+export function MembersPanel({ members, groupId, archiveAction, className, view, archivedMembers }: {
   members: readonly Member[]; groupId: string; archiveAction: FormAction; className?: string;
+  view: GroupView; archivedMembers?: ReactNode;
 }) {
-  const [state, formAction, pending] = useActionState(archiveAction, initialActionState, `/g/${groupId}`);
+  const [state, formAction, pending] = useActionState(archiveAction, initialActionState, `${groupHref(groupId, view)}#members-heading`);
   const activeMembers = members.filter((member) => member.archivedAt === null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
@@ -20,7 +23,10 @@ export function MembersPanel({ members, groupId, archiveAction, className }: {
   }, [state]);
   return (
     <section aria-labelledby="members-heading" className={cn("min-w-0", className)}>
-      <h2 ref={headingRef} tabIndex={-1} id="members-heading" className="mb-6 text-xl font-medium">Members</h2>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 ref={headingRef} tabIndex={-1} id="members-heading" className="text-xl font-medium">Members</h2>
+        <ArchivedToggle groupId={groupId} view={view} section="members" />
+      </div>
       <div ref={feedbackRef} tabIndex={-1}>
         <FormErrorSummary message={state.status === "error" ? state.message : undefined} />
         <p role="status" aria-live="polite" className="flex items-start gap-2 text-sm">
@@ -39,6 +45,7 @@ export function MembersPanel({ members, groupId, archiveAction, className }: {
           ))}
         </ul>
       )}
+      {archivedMembers}
     </section>
   );
 }

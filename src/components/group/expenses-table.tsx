@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import { FormErrorSummary } from "@/components/forms/form-error-summary";
 import { initialActionState, type FormAction } from "@/lib/action-state";
 import { ArchiveExpenseForm } from "./archive-expense-form";
+import { ArchivedToggle } from "./archived-toggle";
 import { Amount } from "@/components/money/amount";
 import {
   Table,
@@ -55,14 +56,17 @@ export function ExpensesTable({
       aria-labelledby="expenses-heading"
       className={cn("min-w-0", className)}
     >
-      <h2
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2
         ref={headingRef}
         tabIndex={-1}
         id="expenses-heading"
-        className="mb-6 text-xl font-medium"
+        className="text-xl font-medium"
       >
         Expenses
       </h2>
+        <ArchivedToggle groupId={groupId} view={view} section="expenses" />
+      </div>
       {searchForm}
       <FormErrorSummary
         message={state.status === "error" ? state.message : undefined}
