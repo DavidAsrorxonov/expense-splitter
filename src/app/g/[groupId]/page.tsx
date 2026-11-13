@@ -11,11 +11,15 @@ import { GroupHeader } from "@/components/group/group-header";
 import { MembersPanel } from "@/components/group/members-panel";
 import { ExpenseOverview } from "@/components/group/expense-overview";
 import { SettleUpPanel } from "@/components/group/settle-up-panel";
+import { SearchForm } from "@/components/group/search-form";
 import { getAppDb } from "@/lib/db";
+import { parseGroupViewParams, type GroupViewParams } from "@/lib/group-view";
 import { groupIdSchema } from "@/lib/schemas";
 import { NotFoundError } from "@/services/errors";
 import { getGroup } from "@/services/group-service";
 import { getGroupOverview } from "@/services/overview-service";
+import { searchGroupExpenses } from "@/services/search-service";
+import type { Expense } from "@/types";
 
 import {
   addExpenseAction,
@@ -26,7 +30,10 @@ import {
   recordPaymentAction,
 } from "./actions";
 
-type GroupPageProps = { params: Promise<{ groupId: string }> };
+type GroupPageProps = {
+  params: Promise<{ groupId: string }>;
+  searchParams: Promise<GroupViewParams>;
+};
 
 export async function generateMetadata({
   params,
@@ -44,14 +51,18 @@ export async function generateMetadata({
   }
 }
 
-export default async function GroupPage({ params }: GroupPageProps) {
+export default async function GroupPage({ params, searchParams }: GroupPageProps) {
   await connection();
   const parsedId = groupIdSchema.safeParse((await params).groupId);
   if (!parsedId.success) notFound();
+  const view = parseGroupViewParams(await searchParams);
 
   let overview;
+  let searchResults: Expense[] | undefined;
   try {
-    overview = getGroupOverview(getAppDb(), parsedId.data);
+    const db = getAppDb();
+    overview = getGroupOverview(db, parsedId.data);
+    if (view.q) searchResults = searchGroupExpenses(db, parsedId.data, view.q);
   } catch (error) {
     if (error instanceof NotFoundError) notFound();
     throw error;
@@ -95,11 +106,19 @@ export default async function GroupPage({ params }: GroupPageProps) {
               currency={group.currency}
             />
             <ExpensesTable
-              expenses={expenses}
+              expenses={searchResults ?? expenses}
               members={members}
               currency={group.currency}
               groupId={group.id}
               archiveAction={archiveExpenseAction.bind(null, group.id)}
+              view={view}
+              searchForm={
+                <SearchForm
+                  groupId={group.id}
+                  {...view}
+                  resultCount={searchResults?.length}
+                />
+              }
             />
           </div>
         }

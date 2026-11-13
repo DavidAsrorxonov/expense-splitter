@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { FormErrorSummary } from "@/components/forms/form-error-summary";
 import { initialActionState, type FormAction } from "@/lib/action-state";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import type { CurrencyCode } from "@/domain/currency";
 import { memberName } from "@/lib/presenters";
+import { groupHref, type GroupView } from "@/lib/group-view";
 import { cn } from "@/lib/utils";
 import type { Expense, Member } from "@/types";
 
@@ -26,6 +27,8 @@ type ExpensesTableProps = {
   className?: string;
   groupId: string;
   archiveAction: FormAction;
+  view: GroupView;
+  searchForm: ReactNode;
 };
 
 export function ExpensesTable({
@@ -35,11 +38,13 @@ export function ExpensesTable({
   className,
   groupId,
   archiveAction,
+  view,
+  searchForm,
 }: ExpensesTableProps) {
   const [state, formAction, pending] = useActionState(
     archiveAction,
     initialActionState,
-    `/g/${groupId}`,
+    `${groupHref(groupId, view)}#expenses-heading`,
   );
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -58,6 +63,7 @@ export function ExpensesTable({
       >
         Expenses
       </h2>
+      {searchForm}
       <FormErrorSummary
         message={state.status === "error" ? state.message : undefined}
       />
@@ -73,11 +79,12 @@ export function ExpensesTable({
           </>
         )}
       </p>
-      {expenses.length === 0 ? (
+      {expenses.length === 0 && !view.q && (
         <p className="text-text-secondary">
           No expenses yet. Use “Add expense” above to record the first one.
         </p>
-      ) : (
+      )}
+      {expenses.length > 0 && (
         <Table
           aria-labelledby="expenses-heading"
           containerLabel="Expenses — scroll to see all columns"
