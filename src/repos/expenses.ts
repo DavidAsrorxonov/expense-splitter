@@ -151,3 +151,49 @@ export function searchExpenses(
 
   return rows.map(toExpense);
 }
+
+/** Returns true only when an archived expense was restored. */
+export function restoreExpense(db: Db, id: number): boolean {
+  const result = db
+    .prepare(
+      `UPDATE expenses SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL`,
+    )
+    .run(id);
+
+  return result.changes > 0;
+}
+
+export function listArchivedExpenses(db: Db, groupId: string): Expense[] {
+  const rows = db
+    .prepare(
+      `SELECT ${COLUMNS} FROM expenses WHERE group_id = ? AND archived_at IS NOT NULL ORDER BY spent_on DESC, id DESC`,
+    )
+    .all(groupId) as ExpenseRow[];
+
+  return rows.map(toExpense);
+}
+
+export function listGroupSplits(
+  db: Db,
+  groupId: string,
+): { expenseId: number; memberId: number; shareMinor: number }[] {
+  const rows = db
+    .prepare(
+      `SELECT s.expense_id, s.member_id, s.share_minor
+       FROM splits s
+       JOIN expenses e ON e.id = s.expense_id
+       WHERE e.group_id = ?
+       ORDER BY s.expense_id, s.member_id`,
+    )
+    .all(groupId) as {
+    expense_id: number;
+    member_id: number;
+    share_minor: number;
+  }[];
+
+  return rows.map((row) => ({
+    expenseId: row.expense_id,
+    memberId: row.member_id,
+    shareMinor: row.share_minor,
+  }));
+}

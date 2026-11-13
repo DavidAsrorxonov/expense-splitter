@@ -54,3 +54,25 @@ export function archiveMember(db: Db, id: number): boolean {
     .run(id);
   return result.changes > 0;
 }
+
+/** Returns true only when an archived member was restored. */
+export function restoreMember(db: Db, id: number): boolean {
+  const result = db
+    .prepare(
+      `UPDATE members SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL`,
+    )
+    .run(id);
+
+  return result.changes > 0;
+}
+
+export function listArchivedMembers(db: Db, groupId: string): Member[] {
+  const rows = db
+    .prepare(
+      `SELECT id, group_id, name, archived_at FROM members
+     WHERE group_id = ? AND archived_at IS NOT NULL ORDER BY id`,
+    )
+    .all(groupId) as MemberRow[];
+
+  return rows.map(toMember);
+}
