@@ -1,11 +1,14 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ExpensesTable } from "@/components/group/expenses-table";
 import { SearchForm } from "@/components/group/search-form";
 import type { Expense } from "@/types";
 
 const groupId = "Abc123_-xyZ9";
+
+// Client navigation is unavailable in the standalone server-rendering harness.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 
 describe("expense search form server output", () => {
   it("renders a native GET form with a labelled, named input", () => {
