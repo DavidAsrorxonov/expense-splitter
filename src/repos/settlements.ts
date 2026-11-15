@@ -58,3 +58,11 @@ export function listSettlements(db: Db, groupId: string): Settlement[] {
     .all(groupId) as SettlementRow[];
   return rows.map(toSettlement);
 }
+
+export function countSettlements(db: Db, groupId: string): number {
+  const row = db
+    .prepare("SELECT COUNT(*) AS count FROM settlements WHERE group_id = ?")
+    .get(groupId) as { count: number };
+
+  return row.count;
+}

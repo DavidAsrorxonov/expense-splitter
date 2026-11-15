@@ -1,9 +1,14 @@
+import { DEFAULT_LIMITS, Limits } from "@/domain/limits";
 import type { Db } from "../db/connection";
 import { minimizeTransfers, type Transfer } from "../domain/minimze-transfers";
 import { listBalances } from "../repos/balances";
 import { findGroup } from "../repos/groups";
 import { findMember } from "../repos/members";
-import { findSettlement, insertSettlement } from "../repos/settlements";
+import {
+  findSettlement,
+  insertSettlement,
+  countSettlements,
+} from "../repos/settlements";
 import type { Settlement } from "../types";
 import { NotFoundError, ValidationError } from "./errors";
 
@@ -28,6 +33,7 @@ export function suggestSettlements(db: Db, groupId: string): Transfer[] {
 export function recordSettlement(
   db: Db,
   input: RecordSettlementInput,
+  limits: Limits = DEFAULT_LIMITS,
 ): Settlement {
   return db.transaction((): Settlement => {
     if (!findGroup(db, input.groupId))
@@ -49,6 +55,12 @@ export function recordSettlement(
       to.groupId !== input.groupId
     ) {
       throw new ValidationError("Both members must belong to this group");
+    }
+
+    if (countSettlements(db, input.groupId) >= limits.maxSettlementsPerGroup) {
+      throw new ValidationError(
+        `This group has reached the limit of ${limits.maxSettlementsPerGroup} settlements.`,
+      );
     }
 
     const id = insertSettlement(db, input);

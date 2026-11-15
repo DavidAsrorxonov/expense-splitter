@@ -1,7 +1,9 @@
+import { DEFAULT_LIMITS, Limits } from "@/domain/limits";
 import type { Db } from "../db/connection";
 import { splitEqually } from "../domain/splits";
 import {
   archiveExpense as archiveExpenseRow,
+  countExpenses,
   findExpense,
   insertExpense,
   insertSplits,
@@ -29,7 +31,11 @@ function isValidDate(value: string): boolean {
   );
 }
 
-export function addExpense(db: Db, input: AddExpenseInput): Expense {
+export function addExpense(
+  db: Db,
+  input: AddExpenseInput,
+  limits: Limits = DEFAULT_LIMITS,
+): Expense {
   return db.transaction((): Expense => {
     if (!findGroup(db, input.groupId))
       throw new NotFoundError("Group not found");
@@ -59,11 +65,25 @@ export function addExpense(db: Db, input: AddExpenseInput): Expense {
       );
     }
 
+    const note = input.note.trim();
+
+    if (note.length > limits.maxNoteLength) {
+      throw new ValidationError(
+        `Expense note must be ${limits.maxNoteLength} characters or fewer.`,
+      );
+    }
+
+    if (countExpenses(db, input.groupId) >= limits.maxExpensesPerGroup) {
+      throw new ValidationError(
+        `This group has reached the limit of ${limits.maxExpensesPerGroup} expenses.`,
+      );
+    }
+
     const expenseId = insertExpense(db, {
       groupId: input.groupId,
       paidBy: input.paidBy,
       amountMinor: input.amountMinor,
-      note: input.note.trim(),
+      note,
       spentOn: input.spentOn,
     });
     insertSplits(

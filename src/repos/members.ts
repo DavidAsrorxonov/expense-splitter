@@ -76,3 +76,11 @@ export function listArchivedMembers(db: Db, groupId: string): Member[] {
 
   return rows.map(toMember);
 }
+
+export function countMembers(db: Db, groupId: string): number {
+  const row = db
+    .prepare("SELECT COUNT(*) AS count FROM members WHERE group_id = ?")
+    .get(groupId) as { count: number };
+
+  return row.count;
+}

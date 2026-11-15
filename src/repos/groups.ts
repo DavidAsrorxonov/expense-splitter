@@ -32,3 +32,11 @@ export function findGroup(db: Db, id: string): Group | undefined {
     .get(id) as GroupRow | undefined;
   return row && toGroup(row);
 }
+
+export function countGroups(db: Db): number {
+  const row = db.prepare("SELECT COUNT(*) AS count FROM groups").get() as {
+    count: number;
+  };
+
+  return row.count;
+}

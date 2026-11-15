@@ -5,6 +5,7 @@ import { fail, fromServiceError, type ActionState } from "@/lib/action-state";
 import { getAppDb } from "@/lib/db";
 import { parseCreateGroupForm } from "@/lib/forms";
 import { createGroup } from "@/services/group-service";
+import { DEFAULT_LIMITS } from "@/domain/limits";
 
 export async function createGroupAction(
   _previousState: ActionState,
@@ -20,7 +21,20 @@ export async function createGroupAction(
 
   let groupId: string;
   try {
-    groupId = createGroup(getAppDb(), parsed.data).id;
+    const rawMaxGroups = process.env.MAX_GROUPS?.trim() ?? "";
+    const requestedMaxGroups = /^\d+$/.test(rawMaxGroups)
+      ? Number(rawMaxGroups)
+      : Number.NaN;
+
+    const maxGroups =
+      Number.isSafeInteger(requestedMaxGroups) && requestedMaxGroups > 0
+        ? requestedMaxGroups
+        : DEFAULT_LIMITS.maxGroups;
+
+    groupId = createGroup(getAppDb(), parsed.data, {
+      ...DEFAULT_LIMITS,
+      maxGroups,
+    }).id;
   } catch (error) {
     return fromServiceError(error, parsed.values);
   }
