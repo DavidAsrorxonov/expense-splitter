@@ -43,7 +43,7 @@ The Export CSV link downloads all active expenses by default, or active and arch
 
 ## Local setup
 
-Use **Node.js 24.x** and npm. Node.js 22.x from **22.12.0** is also supported by the installed dependencies. Run commands from the project root.
+Use **Node.js 22.x, version 22.12.0 or newer**, and npm, matching `package.json` and the Docker image's Node major. Run commands from the project root.
 
 ```bash
 npm ci
@@ -174,11 +174,30 @@ Migration `002_expenses_fts.sql` adds an external-content FTS5 index over expens
 - [DESIGN.md](DESIGN.md): visual rules, responsive layout, controls, and accessibility.
 - [PHASE3.md](PHASE3.md): original web UI implementation specification.
 - [PHASE4.md](PHASE4.md): search, archive/restore, CSV export, and closeout specification.
+- [DEPLOY.md](DEPLOY.md): deployment implementation plan and Railway/DNS operations guide.
 - [Query plans](docs/query-plans.md): recorded SQLite access paths and explanations.
+- [Deployment verification](docs/deployment-checks.md): automated results, owner-reported Docker checks, and outstanding deployment checks.
 
-The four root specification files are currently excluded by `.gitignore` and may be absent from a fresh clone. They are local project references; the README and query-plan report are tracked.
+The five root specification files are currently excluded by `.gitignore` and may be absent from a fresh clone. They are local project references; the README and reports under `docs/` are tracked.
 
-## Production
+## Deployment
+
+The deployment target is one Railway service in Singapore, with **exactly one instance** and a persistent volume mounted at `/data`. The root `Dockerfile` builds the app using Node 22 on Debian, retains dependencies and `src/db/migrations/`, and starts it with `npm start`. `.dockerignore` keeps local database files, environment files, dependencies, and build output out of the image.
+
+`railway.json` selects the Dockerfile builder, one replica, `/api/health` with a 120-second startup healthcheck timeout, and restart-on-failure with up to five retries. This configuration does not create the volume, configure DNS, or enable backups; those are owner setup tasks. Local container verification has passed; a live Railway deployment has not yet been verified. Data caps and rate limiting remain to be implemented before completing the deployment plan.
+
+### Environment
+
+| Variable | Configuration | Purpose |
+| --- | --- | --- |
+| `DATABASE_PATH` | Set to `/data/app.db` in Railway | Required on production database access; the `/data` volume must actually be attached |
+| `NODE_ENV` | `production`, set by the Dockerfile | Enables production behavior and blocks the seed script |
+| `NEXT_TELEMETRY_DISABLED` | `1`, set by the Dockerfile | Disables Next.js telemetry |
+| `PORT` | Supplied by Railway | Read by `next start`; do not hardcode it in the image |
+
+`MAX_GROUPS` belongs to the upcoming data-limits work and is not read by the application yet. The current image runs as root for mounted-volume write access; no `RAILWAY_RUN_UID` override is needed for this image.
+
+For production outside Docker, build and start from the project root:
 
 ```bash
 npm run build
@@ -192,6 +211,14 @@ Use a Node.js runtime with writable, persistent storage for SQLite. The applicat
 The build uses `next/font/google` for Space Grotesk and Space Mono and needs access to download those fonts. The current production build reports filesystem-tracing warnings from the migration runner; these can increase the amount of source included in the server output.
 
 Responses include MIME-sniffing and framing protection, a referrer policy, camera/microphone/geolocation restrictions, and one-year HSTS without `includeSubDomains` or `preload`. Group pages and CSV exports use `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow, noarchive`. `/robots.txt` disallows `/api/` but allows group URLs so crawlers can read their `noindex` header. These policies do not add authentication: anyone with a group link can still access it.
+
+### Backups and release procedure
+
+Enable daily and weekly volume backups in Railway, and take a manual backup before deploying a new migration. Migrations run on first database access, normally the startup healthcheck. Rolling back application code does not roll back the schema.
+
+Before sharing the live app, verify that records survive a restart and redeployment, then perform a restore drill with disposable data. Railway restores stage a change that must be deployed to take effect; verify health and a known group afterward. See [Railway's backup guide](https://docs.railway.com/volumes/backups) and Parts B–E of the local `DEPLOY.md` for setup and operations.
+
+An application backup script is not implemented. A future off-platform copy should use SQLite's online backup API; do not copy only a live `app.db` while it is using WAL mode. CSV exports contain expenses and shares, not the complete database, and are not a substitute for a database backup.
 
 ## Current scope
 
