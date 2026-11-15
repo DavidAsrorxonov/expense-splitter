@@ -1,6 +1,22 @@
 import { format, isValid, parse } from "date-fns";
 import { enUS } from "date-fns/locale";
 
+export function localDateString(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export function datePickerValue(
+  selection: { resetKey: object; value: string | null },
+  resetKey: object,
+  defaultValue: string,
+): string {
+  // Null means untouched; an empty string is an intentional edit.
+  if (selection.resetKey === resetKey && selection.value !== null)
+    return selection.value;
+  const date = parseDateInput(defaultValue);
+  return date ? formatDateInput(date) : defaultValue;
+}
+
 // Parse calendar dates in local time, never as UTC timestamps or permissive Date strings.
 export function parseDateInput(value: string): Date | undefined {
   const text = value.trim();

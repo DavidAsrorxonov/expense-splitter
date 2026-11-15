@@ -200,4 +200,4 @@ Responses include MIME-sniffing and framing protection, a referrer policy, camer
 - Settlements are append-only. Correct an entry by recording the same amount in the opposite direction.
 - Expense editing, custom splits, authentication, and payment processing are not implemented.
 - Same-group integrity triggers and an online backup script remain optional, unimplemented extras. Same-group checks are enforced by services.
-- The initial expense date comes from the server's local date.
+- The expense date starts with a server value for hydration, then defaults to the browser's local date. Successful saves reset it to the current local date; edited dates and failed submissions retain their values.

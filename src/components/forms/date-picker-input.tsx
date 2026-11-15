@@ -1,12 +1,25 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { dateInputValue, formatDateInput, parseDateInput } from "@/lib/date-input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  dateInputValue,
+  datePickerValue,
+  formatDateInput,
+  localDateString,
+  parseDateInput,
+} from "@/lib/date-input";
+
+const subscribe = () => () => {};
+const readLocalToday = () => localDateString(new Date());
 
 type DatePickerInputProps = {
   id: string;
@@ -14,23 +27,48 @@ type DatePickerInputProps = {
   defaultValue: string;
   today: string;
   resetKey: object;
+  defaultToToday?: boolean;
   disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
 };
 
 export function DatePickerInput({
-  id, name, defaultValue, today, resetKey, disabled, invalid, describedBy,
+  id,
+  name,
+  defaultValue,
+  today,
+  resetKey,
+  defaultToToday = false,
+  disabled,
+  invalid,
+  describedBy,
 }: DatePickerInputProps) {
-  const currentDate = parseDateInput(today);
-  const initialDate = parseDateInput(defaultValue);
-  const initialValue = initialDate ? formatDateInput(initialDate) : defaultValue;
-  const [selection, setSelection] = useState({ resetKey, value: initialValue, month: initialDate });
+  // Use the server value during hydration, then the browser's date. React reads
+  // the snapshot again on renders, including each action reset after midnight.
+  const localToday = useSyncExternalStore(
+    subscribe,
+    readLocalToday,
+    () => today,
+  );
+  const currentDate = parseDateInput(localToday);
+  const [selection, setSelection] = useState<{
+    resetKey: object;
+    value: string | null;
+    month?: Date;
+  }>({ resetKey, value: null });
   const [openedKey, setOpenedKey] = useState<object | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const value = selection.resetKey === resetKey ? selection.value : initialValue;
+  const value = datePickerValue(
+    selection,
+    resetKey,
+    defaultToToday ? localToday : defaultValue,
+  );
   const date = parseDateInput(value);
-  const month = (selection.resetKey === resetKey ? selection.month : initialDate) ?? currentDate;
+  const month =
+    (selection.resetKey === resetKey ? selection.month : undefined) ??
+    date ??
+    currentDate;
   const open = openedKey === resetKey && !disabled;
 
   return (
@@ -49,7 +87,11 @@ export function DatePickerInput({
         className="pr-14"
         onChange={(event) => {
           const text = event.target.value;
-          setSelection({ resetKey, value: text, month: parseDateInput(text) ?? month });
+          setSelection({
+            resetKey,
+            value: text,
+            month: parseDateInput(text) ?? month,
+          });
         }}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown") {
@@ -58,14 +100,32 @@ export function DatePickerInput({
           }
         }}
       />
-      <input type="hidden" name={name} value={dateInputValue(value)} disabled={disabled} />
-      <Popover open={open} onOpenChange={(nextOpen) => setOpenedKey(nextOpen ? resetKey : null)}>
-        <PopoverTrigger render={<Button type="button" variant="ghost" size="icon" />}
-          disabled={disabled} aria-label="Choose expense date" className="absolute top-1/2 right-1 -translate-y-1/2">
+      <input
+        type="hidden"
+        name={name}
+        value={dateInputValue(value)}
+        disabled={disabled}
+      />
+      <Popover
+        open={open}
+        onOpenChange={(nextOpen) => setOpenedKey(nextOpen ? resetKey : null)}
+      >
+        <PopoverTrigger
+          render={<Button type="button" variant="ghost" size="icon" />}
+          disabled={disabled}
+          aria-label="Choose expense date"
+          className="absolute top-1/2 right-1 -translate-y-1/2"
+        >
           <CalendarIcon aria-hidden="true" />
         </PopoverTrigger>
-        <PopoverContent align="end" sideOffset={8} className="w-auto p-0" aria-label="Choose expense date"
-          initialFocus={false} finalFocus={inputRef}>
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          className="w-auto p-0"
+          aria-label="Choose expense date"
+          initialFocus={false}
+          finalFocus={inputRef}
+        >
           <Calendar
             mode="single"
             required
@@ -73,10 +133,20 @@ export function DatePickerInput({
             selected={date}
             today={currentDate}
             month={month}
-            onMonthChange={(nextMonth) => setSelection({ resetKey, value, month: nextMonth })}
+            onMonthChange={(nextMonth) =>
+              setSelection({
+                resetKey,
+                value: selection.resetKey === resetKey ? selection.value : null,
+                month: nextMonth,
+              })
+            }
             onSelect={(nextDate) => {
               if (!nextDate) return;
-              setSelection({ resetKey, value: formatDateInput(nextDate), month: nextDate });
+              setSelection({
+                resetKey,
+                value: formatDateInput(nextDate),
+                month: nextDate,
+              });
               setOpenedKey(null);
             }}
           />
