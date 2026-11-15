@@ -191,6 +191,8 @@ Use a Node.js runtime with writable, persistent storage for SQLite. The applicat
 
 The build uses `next/font/google` for Space Grotesk and Space Mono and needs access to download those fonts. The current production build reports filesystem-tracing warnings from the migration runner; these can increase the amount of source included in the server output.
 
+Responses include MIME-sniffing and framing protection, a referrer policy, camera/microphone/geolocation restrictions, and one-year HSTS without `includeSubDomains` or `preload`. Group pages and CSV exports use `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow, noarchive`. `/robots.txt` disallows `/api/` but allows group URLs so crawlers can read their `noindex` header. These policies do not add authentication: anyone with a group link can still access it.
+
 ## Current scope
 
 - Each group uses one currency; there is no currency conversion.
