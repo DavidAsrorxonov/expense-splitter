@@ -187,6 +187,8 @@ DATABASE_PATH=/absolute/path/to/persistent/expenses.db npm start
 
 Use a Node.js runtime with writable, persistent storage for SQLite. The application is not a static export, and an ephemeral filesystem will not preserve the database across deployments. Keep `src/db/migrations/` available and launch from the project root, because migrations are resolved relative to the working directory.
 
+`GET /api/health` opens the application database, applies pending migrations on first access, and checks database connectivity. It returns HTTP 200 with `{"status":"ok","schemaVersion":N}`, or HTTP 503 with `{"status":"error"}` for configuration, initialization, or query failures. Responses use `Cache-Control: no-store`; initialization error details are logged only on the server. This endpoint does not verify the storage mount or perform a full database integrity check.
+
 The build uses `next/font/google` for Space Grotesk and Space Mono and needs access to download those fonts. The current production build reports filesystem-tracing warnings from the migration runner; these can increase the amount of source included in the server output.
 
 ## Current scope
