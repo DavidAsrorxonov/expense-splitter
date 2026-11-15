@@ -54,6 +54,8 @@ Open [localhost:3000](http://localhost:3000), create a group, and add members an
 
 The app creates `data/app.db` and applies migrations on its first database access. You do not need to seed the database or run migrations manually to get started.
 
+In production, application database access requires an explicit, nonblank `DATABASE_PATH`; development keeps the default above. The selected path is logged once on first use. Setting a path does not verify that it is on persistent storage.
+
 ### Database location
 
 Set `DATABASE_PATH` to choose a different SQLite file:
@@ -75,6 +77,8 @@ SQLite files under `data/`, including their WAL and shared-memory sidecars, are 
 ### Sample data
 
 **The seed script deletes and recreates its target database, including its WAL and shared-memory files. Without `DATABASE_PATH`, that target is `data/app.db`. Use a separate disposable database, and stop any app process using that file before reseeding.**
+
+The script refuses to run when `NODE_ENV=production`, before modifying any database files. This guards against accidental use; it does not protect against someone overriding the environment.
 
 ```bash
 DATABASE_PATH=data/demo.db npm run seed

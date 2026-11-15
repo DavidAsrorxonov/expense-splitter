@@ -18,9 +18,9 @@ export function openDatabase(filename: string): Db {
 
 const globalForDb = globalThis as unknown as { __db?: Db };
 
-export function getDb(): Db {
+export function getDb(filename: string = process.env.DATABASE_PATH ?? "data/app.db"): Db {
   if (!globalForDb.__db) {
-    globalForDb.__db = openDatabase(process.env.DATABASE_PATH ?? "data/app.db");
+    globalForDb.__db = openDatabase(filename);
   }
   return globalForDb.__db;
 }

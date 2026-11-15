@@ -3,6 +3,11 @@ import { nanoid } from "nanoid";
 import { openDatabase } from "@/db/connection";
 import { migrate } from "@/db/migrate";
 
+if (process.env.NODE_ENV === "production") {
+  console.error("Refusing to seed in production: the seed script deletes and recreates its target database.");
+  process.exit(1);
+}
+
 const DB_PATH = process.env.DATABASE_PATH ?? "data/app.db";
 
 for (const suffix of ["", "-shm", "-wal"]) {
