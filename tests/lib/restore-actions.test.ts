@@ -9,10 +9,14 @@ import { getGroupBalances } from "@/services/balance-service";
 import { searchGroupExpenses } from "@/services/search-service";
 import { restoreExpenseAction, restoreMemberAction } from "@/app/g/[groupId]/actions";
 import { createTestDb } from "../helpers/db";
+import { resetRateLimiters } from "../helpers/rate-limit";
 
 const mocks = vi.hoisted(() => ({ getAppDb: vi.fn(), revalidatePath: vi.fn() }));
 vi.mock("@/lib/db", () => ({ getAppDb: mocks.getAppDb }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-real-ip": "192.0.2.1" }),
+}));
 
 let db: Db;
 let groupId: string;
@@ -20,6 +24,7 @@ let expenseId: number;
 let memberId: number;
 
 beforeEach(() => {
+  resetRateLimiters();
   vi.resetAllMocks();
   db = createTestDb();
   mocks.getAppDb.mockReturnValue(db);
@@ -35,7 +40,7 @@ beforeEach(() => {
   archiveMember(db, groupId, memberId);
 });
 
-afterEach(() => db.close());
+afterEach(() => { db.close(); resetRateLimiters(); });
 
 function form(field: string, value: string | Blob): FormData {
   const data = new FormData();

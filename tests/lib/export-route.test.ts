@@ -4,6 +4,7 @@ import { GET } from "@/app/g/[groupId]/export/route";
 import { addExpense, archiveExpense } from "@/services/expense-service";
 import { addMember, createGroup } from "@/services/group-service";
 import { createTestDb } from "../helpers/db";
+import { resetRateLimiters } from "../helpers/rate-limit";
 
 const mocks = vi.hoisted(() => ({ getAppDb: vi.fn(), connection: vi.fn() }));
 vi.mock("@/lib/db", () => ({ getAppDb: mocks.getAppDb }));
@@ -13,6 +14,7 @@ let db: Db;
 let groupId: string;
 
 beforeEach(() => {
+  resetRateLimiters();
   vi.resetAllMocks();
   db = createTestDb();
   mocks.getAppDb.mockReturnValue(db);
@@ -24,7 +26,7 @@ beforeEach(() => {
   archiveExpense(db, groupId, archived.id);
 });
 
-afterEach(() => db.close());
+afterEach(() => { db.close(); resetRateLimiters(); });
 
 function download(query = "", id = groupId) {
   return GET(new Request(`https://example.test/g/${id}/export${query}`), {

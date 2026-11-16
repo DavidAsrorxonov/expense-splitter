@@ -6,11 +6,15 @@ import { getAppDb } from "@/lib/db";
 import { parseCreateGroupForm } from "@/lib/forms";
 import { createGroup } from "@/services/group-service";
 import { DEFAULT_LIMITS } from "@/domain/limits";
+import { rateLimitAction } from "@/lib/rate-limit-action";
 
 export async function createGroupAction(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const limited = await rateLimitAction("createGroup", formData);
+  if (limited) return limited;
+
   const parsed = parseCreateGroupForm(formData);
   if (!parsed.success) {
     return fail("Check the fields below.", {

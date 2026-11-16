@@ -6,10 +6,14 @@ import { initialActionState } from "@/lib/action-state";
 import { countGroups } from "@/repos/groups";
 import { createGroup } from "@/services/group-service";
 import { createTestDb } from "../helpers/db";
+import { resetRateLimiters } from "../helpers/rate-limit";
 
 const mocks = vi.hoisted(() => ({ getAppDb: vi.fn(), redirect: vi.fn() }));
 vi.mock("@/lib/db", () => ({ getAppDb: mocks.getAppDb }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-real-ip": "192.0.2.1" }),
+}));
 vi.mock("@/services/group-service", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/group-service")>();
   return { ...actual, createGroup: vi.fn(actual.createGroup) };
@@ -18,13 +22,14 @@ vi.mock("@/services/group-service", async (importOriginal) => {
 let db: Db;
 const redirectSignal = new Error("NEXT_REDIRECT");
 beforeEach(() => {
+  resetRateLimiters();
   vi.clearAllMocks();
   vi.stubEnv("MAX_GROUPS", undefined);
   db = createTestDb();
   mocks.getAppDb.mockReturnValue(db);
   mocks.redirect.mockImplementation(() => { throw redirectSignal; });
 });
-afterEach(() => { db.close(); vi.unstubAllEnvs(); });
+afterEach(() => { db.close(); vi.unstubAllEnvs(); resetRateLimiters(); });
 
 function form(name = "Trip"): FormData {
   const data = new FormData();
