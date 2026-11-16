@@ -130,6 +130,8 @@ npm run build
 
 Tests cover database constraints, repositories, splitting and settlement calculations, service transactions, form validation, presentation helpers, date parsing, pagination, and chart data. Phase 4 coverage includes FTS synchronization and migration backfill, ranked search, restore rules and balances, exact decimal serialization, CSV escaping and round trips, export responses, URL state, debounce timing, and server-rendered UI fallbacks. Database tests use fresh in-memory SQLite databases or isolated temporary databases for migration checks.
 
+Deployment coverage includes database-path and seed safeguards, health responses, security headers, local-date defaults, transactional data caps, client-IP parsing, rate-limit windows and eviction, and blocked actions/exports making no database calls. The latest verification passed **622 tests across 54 files**, lint, TypeScript, and a production build with `DATABASE_PATH` empty. See [deployment verification](docs/deployment-checks.md) for dates, attribution, and outstanding manual checks.
+
 Browser checks should include:
 
 - Creating a group, adding members, and adding expenses with different payers and participants.
@@ -139,6 +141,7 @@ Browser checks should include:
 - Showing archived records, restoring expenses and members, and checking a restore blocked by an active member with the same name.
 - Downloading CSV with and without archived expenses, including while a search is active.
 - Invalid submissions retaining input and showing useful errors.
+- Rate-limit errors retaining form drafts and row-specific feedback; blocked CSV downloads returning HTTP 429 with `Retry-After` and `Cache-Control: no-store`.
 - Tabs, dialogs, selects, the calendar, charts, and pagination with keyboard navigation and on mobile, in both themes.
 - Native search submission, archived visibility, restore, and CSV links with JavaScript disabled.
 - Reloading the group and restarting the server to confirm data persists.
@@ -149,15 +152,15 @@ Browser checks should include:
 src/
   app/             Routes, CSV export handler, shared layout, and Server Actions
   components/      Group interface, forms, charts, layout, and UI primitives
-  lib/             UI validation, form parsing, presentation helpers, and DB access wrapper
-  domain/          Pure money, split, transfer, search-query, and CSV helpers
+  lib/             UI helpers, DB access wrapper, client-IP parsing, and request rate limiting
+  domain/          Pure money, split, transfer, search-query, CSV helpers, and data-limit defaults
   services/        Business rules and transaction boundaries
   repos/           SQL queries and row mapping
   db/              SQLite connection, migration runner, and migration files
   types.ts         Shared data types
 scripts/           Sample-data and query-plan utilities
 tests/             Unit and SQLite integration tests
-docs/              Query-plan documentation
+docs/              Query plans and deployment verification
 ```
 
 The dependency flow is **UI → services → domain/repositories → database**. UI code accesses the database through services. Application queries live in repositories; the database layer handles connection configuration and migration bookkeeping. No ORM is used.
@@ -184,18 +187,19 @@ The five root specification files are currently excluded by `.gitignore` and may
 
 The deployment target is one Railway service in Singapore, with **exactly one instance** and a persistent volume mounted at `/data`. The root `Dockerfile` builds the app using Node 22 on Debian, retains dependencies and `src/db/migrations/`, and starts it with `npm start`. `.dockerignore` keeps local database files, environment files, dependencies, and build output out of the image.
 
-`railway.json` selects the Dockerfile builder, one replica, `/api/health` with a 120-second startup healthcheck timeout, and restart-on-failure with up to five retries. This configuration does not create the volume, configure DNS, or enable backups; those are owner setup tasks. Local container verification has passed; a live Railway deployment has not yet been verified. Data caps and rate limiting remain to be implemented before completing the deployment plan.
+`railway.json` selects the Dockerfile builder, one replica, `/api/health` with a 120-second startup healthcheck timeout, and restart-on-failure with up to five retries. This configuration does not create the volume, configure DNS, or enable backups; those are owner setup tasks. The owner reported successful local container verification before the abuse-protection changes. Data caps and rate limiting are now implemented and covered by automated checks; browser verification of those protections and a live Railway deployment remain pending.
 
 ### Environment
 
 | Variable | Configuration | Purpose |
 | --- | --- | --- |
 | `DATABASE_PATH` | Set to `/data/app.db` in Railway | Required on production database access; the `/data` volume must actually be attached |
+| `MAX_GROUPS` | Optional; defaults to `2000` | Total-group cap used by the group-creation Server Action |
 | `NODE_ENV` | `production`, set by the Dockerfile | Enables production behavior and blocks the seed script |
 | `NEXT_TELEMETRY_DISABLED` | `1`, set by the Dockerfile | Disables Next.js telemetry |
 | `PORT` | Supplied by Railway | Read by `next start`; do not hardcode it in the image |
 
-`MAX_GROUPS` belongs to the upcoming data-limits work and is not read by the application yet. The current image runs as root for mounted-volume write access; no `RAILWAY_RUN_UID` override is needed for this image.
+`MAX_GROUPS` is read on each group-creation attempt that passes rate limiting and form validation. It accepts a positive safe integer written as decimal digits, with surrounding whitespace allowed; missing, blank, or invalid values fall back to `2000`. Lowering it below the current group count prevents new groups without removing existing data. Other data caps and rate policies are code constants, not environment settings. The current image runs as root for mounted-volume write access; no `RAILWAY_RUN_UID` override is needed for this image.
 
 For production outside Docker, build and start from the project root:
 
@@ -211,6 +215,38 @@ Use a Node.js runtime with writable, persistent storage for SQLite. The applicat
 The build uses `next/font/google` for Space Grotesk and Space Mono and needs access to download those fonts. The current production build reports filesystem-tracing warnings from the migration runner; these can increase the amount of source included in the server output.
 
 Responses include MIME-sniffing and framing protection, a referrer policy, camera/microphone/geolocation restrictions, and one-year HSTS without `includeSubDomains` or `preload`. Group pages and CSV exports use `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow, noarchive`. `/robots.txt` disallows `/api/` but allows group URLs so crawlers can read their `noindex` header. These policies do not add authentication: anyone with a group link can still access it.
+
+### Data caps and request limits
+
+Services enforce these defaults from `src/domain/limits.ts`:
+
+| Resource | Default cap |
+| --- | --- |
+| Groups across the database | 2,000; the group-creation action supports `MAX_GROUPS` |
+| Members per group | 50, including archived members |
+| Expenses per group | 2,000, including archived expenses |
+| Recorded payments per group | 1,000 |
+| Group/member names | 80 after trimming |
+| Expense notes | 200 after trimming |
+
+Text lengths use JavaScript string length (UTF-16 code units). Count checks and inserts run in the same service transaction. Archiving does not free capacity; restoring existing records does not add to these counts.
+
+Request policies in `src/lib/rate-limit-policy.ts` apply before business validation or database access:
+
+| Operation | Allowance |
+| --- | --- |
+| Group creation | 5 attempts per IP/hour and 60 globally/hour |
+| Other writes combined, across all groups | 60 attempts per IP/minute |
+| CSV downloads, across all groups | 10 attempts per IP/minute |
+| Normal page reads and `/api/health` | Not rate-limited |
+
+These are fixed windows starting with the first allowed request for each key, not clock-aligned hours/minutes. Invalid submissions consume allowance; blocked requests do not extend the window. Group creation checks the IP allowance first, so an already-blocked IP cannot drain the global allowance. An attempt blocked globally still consumes its IP allowance.
+
+Blocked Server Actions return a retry interval and bounded, allowlisted form values, including participant and row IDs, through the existing error UI. Blocked CSV requests return HTTP `429`, a positive integer `Retry-After` in seconds, and `Cache-Control: no-store`.
+
+The limiter instances are shared on `globalThis` within one process. Each per-IP map holds at most 10,000 keys, prunes expired entries on requests, and evicts the oldest key at capacity. Restarts/redeployments reset limits, and evicted keys lose their history. This is process-local protection, not a durable quota or a multi-worker limiter.
+
+Client identity uses a single validated `X-Real-IP`; IPv6 addresses are normalized. Missing, malformed, or comma-separated values share an `unknown` bucket, and `X-Forwarded-For` is ignored. Local requests without `X-Real-IP` therefore share the same allowance. The deployment assumes direct ingress through Railway's public HTTP edge. Verify its handling of spoofed headers after deployment, and revisit the trust boundary before adding another proxy or ingress path. Header syntax validation alone does not establish trust.
 
 ### Backups and release procedure
 
